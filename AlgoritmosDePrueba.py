@@ -59,10 +59,9 @@ def mostrar_menu_secundario(nombre_algoritmo):
     print("="*50)
     print("1. Tomar datos automáticos")
     print("2. Mostrar diagrama de dispersión")
-    print("3. Determinar mínimos cuadrados")
-    print("4. Gráfico con curva de mínimos cuadrados")
-    print("5. Volver al menú principal")
-    
+    print("3. Volver al menú principal")
+    print("4. Determinar mínimos cuadrados")
+    print("5. Gráfico con curva de mínimos cuadrados")
     print("="*50)
 
 def generar_lista_ordenada(n):
@@ -77,6 +76,9 @@ def tomar_datos_automaticos(algoritmo, nombre_algoritmo):
         inicio = time.time()
         resultado, iteraciones = algoritmo(lista)
         tiempo_ejecucion = time.time() - inicio
+        
+        # Aseguramos que el tiempo nunca sea cero
+        tiempo_ejecucion = max(tiempo_ejecucion, 0.000001)
         
         estadisticas.append({
             'algoritmo': nombre_algoritmo,
@@ -116,6 +118,7 @@ def mostrar_diagrama_dispersion():
     plt.legend()
     plt.grid(True)
     plt.xticks(range(6, 20, 2))
+    plt.ylim(bottom=0)  # Aseguramos que el eje Y empiece en 0
     plt.show()
 
 def calcular_minimos_cuadrados(algoritmo_nombre):
@@ -126,9 +129,9 @@ def calcular_minimos_cuadrados(algoritmo_nombre):
         print(f"No hay datos para el algoritmo {algoritmo_nombre}")
         return
     
-    # Preparar datos
+    # Preparar datos (asegurando que los tiempos no sean cero)
     x = np.array([d['n_elementos'] for d in datos_algo])
-    y = np.array([d['tiempo'] for d in datos_algo])
+    y = np.array([max(d['tiempo'], 0.000001) for d in datos_algo])
     n = len(x)
     
     # Calcular sumatorias necesarias
@@ -137,8 +140,6 @@ def calcular_minimos_cuadrados(algoritmo_nombre):
     sum_xy = sum(x*y)
     sum_x2 = sum(x**2)
     sum_ln_x = sum(np.log(x))
-    sum_ln_y = sum(np.log(y))
-    sum_lnx_lny = sum(np.log(x)*np.log(y))
     sum_lnx2 = sum(np.log(x)**2)
     
     print("\nResultados de mínimos cuadrados:")
@@ -168,7 +169,8 @@ def calcular_minimos_cuadrados(algoritmo_nombre):
     elif algoritmo_nombre == 'O(n log n)':
         # Modelo logarítmico para O(n log n)
         try:
-            a, b = resolver_logaritmico(sum_ln_x, sum_y, sum_xy, sum_lnx2, n)
+            sum_lnx_y = sum(np.log(x) * y)  # Corregido: usar y en lugar de ln(y)
+            a, b = resolver_logaritmico(sum_ln_x, sum_y, sum_lnx_y, sum_lnx2, n)
             print(f"Modelo Logarítmico (y = a*ln(x) + b):")
             print(f"a = {a:.6f}, b = {b:.6f}")
         except Exception as e:
@@ -182,9 +184,9 @@ def mostrar_grafico_minimos_cuadrados(algoritmo_nombre):
         print(f"No hay datos para el algoritmo {algoritmo_nombre}")
         return
     
-    # Preparar datos
+    # Preparar datos (asegurando que los tiempos no sean cero)
     x = np.array([d['n_elementos'] for d in datos_algo])
-    y = np.array([d['tiempo'] for d in datos_algo])
+    y = np.array([max(d['tiempo'], 0.000001) for d in datos_algo])
     n = len(x)
     
     # Calcular sumatorias necesarias
@@ -208,8 +210,8 @@ def mostrar_grafico_minimos_cuadrados(algoritmo_nombre):
             a, b = resolver_lineal(sum_x, sum_y, sum_xy, sum_x2, n)
             y_vals = a*x_vals + b
             plt.plot(x_vals, y_vals, 'g-', label=f'Lineal: y={a:.4f}x+{b:.4f}')
-        except:
-            print("No se pudo calcular el modelo lineal")
+        except Exception as e:
+            print("No se pudo calcular el modelo lineal:", str(e))
     
     elif algoritmo_nombre == 'O(n²)':
         # Modelo cuadrático para O(n²)
@@ -220,23 +222,26 @@ def mostrar_grafico_minimos_cuadrados(algoritmo_nombre):
             a, b, c = resolver_cuadratico(sum_x, sum_y, sum_xy, sum_x2, sum_x2y, sum_x3, sum_x4, n)
             y_vals = a*(x_vals**2) + b*x_vals + c
             plt.plot(x_vals, y_vals, 'b-', label=f'Cuadrático: y={a:.4f}x²+{b:.4f}x+{c:.4f}')
-        except:
-            print("No se pudo calcular el modelo cuadrático")
+        except Exception as e:
+            print("No se pudo calcular el modelo cuadrático:", str(e))
     
     elif algoritmo_nombre == 'O(n log n)':
         # Modelo logarítmico para O(n log n)
         try:
-            a, b = resolver_logaritmico(sum_ln_x, sum_y, sum_xy, sum_lnx2, n)
+            sum_lnx_y = sum(np.log(x) * y)
+            a, b = resolver_logaritmico(sum_ln_x, sum_y, sum_lnx_y, sum_lnx2, n)
             y_vals = a*np.log(x_vals) + b
+            y_vals = np.maximum(y_vals, 0)  # Nos aseguramos que no sea negativo
             plt.plot(x_vals, y_vals, 'm-', label=f'Logarítmico: y={a:.4f}ln(x)+{b:.4f}')
-        except:
-            print("No se pudo calcular el modelo logarítmico")
+        except Exception as e:
+            print("No se pudo calcular el modelo logarítmico:", str(e))
     
     plt.title(f'Modelo de mínimos cuadrados para {algoritmo_nombre}')
     plt.xlabel('Número de elementos')
     plt.ylabel('Tiempo de ejecución (s)')
     plt.legend()
     plt.grid(True)
+    plt.ylim(bottom=0)  # Aseguramos que el eje Y empiece en 0
     plt.show()
 
 def resolver_lineal(sum_x, sum_y, sum_xy, sum_x2, n):
@@ -306,13 +311,13 @@ def main():
                 elif sub_op == "2":
                     mostrar_diagrama_dispersion()
                     
-                elif sub_op == "5":
+                elif sub_op == "3":
                     break
                     
-                elif sub_op == "3":
+                elif sub_op == "4":
                     calcular_minimos_cuadrados(algoritmo_actual['nombre'])
                     
-                elif sub_op == "4":
+                elif sub_op == "5":
                     mostrar_grafico_minimos_cuadrados(algoritmo_actual['nombre'])
                     
                 else:
